@@ -6,3 +6,4 @@ Features:</br>
 - 10 second forwards/backwards buttons
 - Audio scrubbing
 - Independent music volume slider
+- An easy-to-use folder system for sorting songs
