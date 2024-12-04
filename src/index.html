@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>ARCHIIV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .folder {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body style="padding-top:70px; padding-bottom:70px" class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+<div class="w-full max-w-md mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-bold">Music Player</h1>
+        <i class="fas fa-music text-2xl"></i>
+    </div>
+    <div class="mb-4">
+        <img alt="Album cover" class="w-full object-cover rounded-lg" id="album-cover" src="https://d2w9rnfcy7mm78.cloudfront.net/32134430/original_15bfb157811c88b401d207c87e609c26.jpg"/>
+    </div>
+    <div class="mb-4">
+        <h2 class="text-xl font-semibold" id="song-title" style="padding-top:20px">Mack The Knife</h2>
+        <p class="text-gray-400" id="artist-name">Bobby Darin</p>
+    </div>
+    <div class="flex items-center justify-between mb-4">
+        <span class="text-gray-400" id="current-time">0:00</span>
+        <input class="w-full mx-4" id="seek-bar" max="100" min="0" type="range" value="0"/>
+        <span class="text-gray-400" id="duration">3:45</span>
+    </div>
+    <div class="flex items-center justify-center space-x-4 mb-4">
+        <button class="text-gray-400 hover:text-white" id="prev-btn">
+            <i class="fas fa-backward text-2xl"></i>
+        </button>
+        <button class="text-gray-400 hover:text-white" id="play-pause-btn">
+            <i class="fas fa-play text-2xl"></i>
+        </button>
+        <button class="text-gray-400 hover:text-white" id="next-btn">
+            <i class="fas fa-forward text-2xl"></i>
+        </button>
+    </div>
+    <div class="mb-4">
+        <h3 class="text-lg font-semibold mb-2">Volume</h3>
+        <input class="w-full" id="volume-slider" type="range" min="0" max="1" step="0.01" value="1"/>
+    </div>
+    <div>
+        <h3 class="text-lg font-semibold mb-2">Choose a Song</h3>
+        <div class="space-y-2">
+            <div class="folder p-2 bg-gray-700 rounded-lg" onclick="toggleFolder('folder1')">
+                <i class="fas fa-user"></i>
+                <span class="ml-2">Bobby Darin</span>
+            </div>
+            <ul id="folder1" class="hidden pl-4 space-y-2">
+                <li class="flex items-center justify-between p-2 bg-gray-600 rounded-lg cursor-pointer hover:bg-gray-500" data-src="https://attachments.are.na/32137203/328f460f8c71941d05e6816b504d0ab5.mp3?1731368250" data-title="Medley: Swing Low Sweet Chariot / Lonesome Road" data-artist="Bobby Darin" data-cover="https://d2w9rnfcy7mm78.cloudfront.net/32137179/original_683f62c7241a331d1c54f948f6361ac6.jpg" data-hash="#bobbydarin/medleyswinglowlonesome">
+                    <span>Medley: Swing Low Sweet Char...</span>
+                    <span class="text-gray-400">Bobby Darin</span>
+                </li>
+            </ul>
+    </div>
+</div>
+<audio id="audio-player" src="https://attachments.are.na/31485824/6fefaec9c82468d674ef1cbeadfe20f1.mp3?1729125603"></audio>
+<script>
+    const audioPlayer = document.getElementById('audio-player');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const seekBar = document.getElementById('seek-bar');
+    const currentTimeElem = document.getElementById('current-time');
+    const durationElem = document.getElementById('duration');
+    const songTitleElem = document.getElementById('song-title');
+    const artistNameElem = document.getElementById('artist-name');
+    const albumCoverElem = document.getElementById('album-cover');
+    const songItems = document.querySelectorAll('li[data-src]');
+    const volumeSlider = document.getElementById('volume-slider');
+
+    let isPlaying = false;
+    let currentSongIndex = -1; // To track the current song index
+
+    playPauseBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            audioPlayer.pause();
+            playPauseBtn.innerHTML = '<i class="fas fa-play text-2xl"></i>';
+        } else {
+            audioPlayer.play();
+           playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl"></i>';
+       }
+        isPlaying = !isPlaying;
+    });
+
+    audioPlayer.addEventListener('timeupdate', () => {
+        const currentTime = audioPlayer.currentTime;
+        const duration = audioPlayer.duration;
+        seekBar.value = (currentTime / duration) * 100;
+        currentTimeElem.textContent = formatTime(currentTime);
+        durationElem.textContent = formatTime(duration);
+    });
+
+    seekBar.addEventListener('input', () => {
+        const seekTo = (seekBar.value / 100) * audioPlayer.duration;
+        audioPlayer.currentTime = seekTo;
+    });
+
+    volumeSlider.addEventListener('input', () => {
+       audioPlayer.volume = volumeSlider.value;
+    });
+
+    songItems.forEach((item, index) => {
+       item.addEventListener('click', () => {
+            playSong(item, index);
+      });
+    });
+
+    function playSong(item, index) {
+        const src = item.getAttribute('data-src');
+        const title = item.getAttribute('data-title');
+        const artist = item.getAttribute('data-artist');
+        const cover = item.getAttribute('data-cover');
+        const hash = item.getAttribute('data-hash');
+
+        audioPlayer.src = src;
+        songTitleElem.textContent = title;
+        artistNameElem.textContent = artist;
+        albumCoverElem.src = cover;
+        document.title = title + ' ' + 'by' + ' ' + artist + ' ' + 'on ARCHIIV'
+
+        history.pushState(null, '', hash);
+        audioPlayer.play();
+        playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl"></i>';
+        isPlaying = true;
+        currentSongIndex = index; // Update the current song index
+    }
+
+    // AUTOPLAY //
+    // Add event listener for when the song ends
+    audioPlayer.addEventListener('ended', () => {
+        // Check if there is a next song
+        if (currentSongIndex < songItems.length - 1) {
+           currentSongIndex++; // Move to the next song
+           const nextSongItem = songItems[currentSongIndex];
+           playSong(nextSongItem, currentSongIndex); // Play the next song
+        } else {
+            // If it's the last song, you can either loop back to the first song or stop
+            // Uncomment the line below to loop back to the first song
+            currentSongIndex = 0; playSong(songItems[currentSongIndex], currentSongIndex);
+            isPlaying = false; // Stop playing if no more songs
+            playPauseBtn.innerHTML = '<i class="fas fa-play text-2xl"></i>';
+        }
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+        });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+          audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10); 
+        });
+
+    function formatTime(seconds) {
+       const minutes = Math.floor(seconds / 60);
+       const secs = Math.floor(seconds % 60);
+      return `${minutes }:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    function toggleFolder(folderId) {
+        const folder = document.getElementById(folderId);
+        folder.classList.toggle('hidden');
+    }
+
+    function loadSongFromHash() {
+      const hash = window.location.hash;
+      const songItem = Array.from(songItems).find(item => item.getAttribute('data-hash') === hash);
+      if (songItem) {
+          const index = Array.from(songItems).indexOf(songItem);
+          playSong(songItem, index);
+      }
+    }
+
+    window.addEventListener('load', loadSongFromHash);
+    window.addEventListener('hashchange', loadSongFromHash);
+</script>
+</body>
+</html>
