@@ -51,6 +51,11 @@
     </div>
     <div>
         <h3 class="text-lg font-semibold mb-2">Choose a Song</h3>
+        <div class="mb-4">
+      <input type="text" id="search-bar" placeholder="Search for a song..." class="w-full p-2 mb-4 bg-gray-700 rounded-lg text-white"/>
+      <div id="song-list" class="space-y-2">
+          <!-- Song items will be dynamically generated here -->
+    </div>
         <div class="space-y-2">
             <div class="folder p-2 bg-gray-700 rounded-lg" onclick="toggleFolder('folder1')">
                 <i class="fas fa-user"></i>
@@ -137,12 +142,52 @@
         artistNameElem.textContent = artist;
         albumCoverElem.src = cover;
         document.title = title + ' ' + 'by' + ' ' + artist + ' ' + 'on ARCHIIV'
+        if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: title,
+            artist: artist,
+            album: 'ARCHIIV Music', // You can set the album name if you want
+            artwork: [
+                { src: cover, sizes: '512x512', type: 'image/jpeg' }, // Use the cover image
+            ]
+        });
+        }
+        
+        // Define action handlers
+        navigator.mediaSession.setActionHandler('play', () => {
+            audioPlayer.play();
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+            audioPlayer.pause();
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            nextSong(); // Call your function to play the next song
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            previousSong(); // Call your function to play the previous song
+        });
+
 
         history.pushState(null, '', hash);
         audioPlayer.play();
         playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl"></i>';
         isPlaying = true;
         currentSongIndex = index; // Update the current song index
+    }
+    
+    function nextSong() {
+        // Increment the index and loop back to the start if at the end
+        currentSongIndex = (currentSongIndex + 1) % songList.length;
+        playSong(songList[currentSongIndex], currentSongIndex);
+    }
+
+    function previousSong() {
+        // Decrement the index and loop to the end if at the start
+        currentSongIndex = (currentSongIndex - 1 + songList.length) % songList.length;
+        playSong(songList[currentSongIndex], currentSongIndex);
     }
 
     // AUTOPLAY //
@@ -193,5 +238,80 @@
     window.addEventListener('load', loadSongFromHash);
     window.addEventListener('hashchange', loadSongFromHash);
 </script>
+
+<script>
+document.getElementById('search-bar').addEventListener('keyup', function() {
+    const query = this.value.toLowerCase();
+    const folders = document.querySelectorAll('.folder');
+    const songs = document.querySelectorAll('li[data-src]');
+    let matchFound = false;
+
+    // Hide all song lists initially
+    folders.forEach(folder => {
+        const folderId = folder.getAttribute('onclick').match(/'(.*?)'/)[1];
+        const songList = document.getElementById(folderId);
+        if (songList) {
+            songList.classList.add('hidden');
+        }
+    });
+
+    songs.forEach(song => {
+        const title = song.dataset.title.toLowerCase();
+        const artist = song.dataset.artist.toLowerCase();
+        const matches = title.includes(query) || artist.includes(query);
+
+        if (matches) {
+            song.style.display = 'flex';
+            matchFound = true;
+            const folder = song.closest('ul');
+            if (folder) {
+                const folderHeader = folder.previousElementSibling;
+                if (folderHeader) {
+                    folderHeader.style.display = 'block';
+                }
+                folder.classList.remove('hidden');
+            }
+        } else {
+            song.style.display = 'none';
+        }
+    });
+
+    folders.forEach(folder => {
+        const folderId = folder.getAttribute('onclick').match(/'(.*?)'/)[1];
+        const songList = document.getElementById(folderId);
+        if (songList) {
+            const visibleSongs = songList.querySelectorAll('li[data-src]:not([style*="display: none"])');
+            folder.style.display = visibleSongs.length > 0 ? 'block' : 'none';
+        }
+    });
+
+    const noResultsMessage = document.getElementById('no-results');
+    if (!matchFound) {
+        if (noResultsMessage) {
+            noResultsMessage.classList.remove('hidden');
+        }
+    } else {
+        if (noResultsMessage) {
+            noResultsMessage.classList.add('hidden');
+        }
+    }
+
+    // Ensure folders are still togglable after clearing the search bar
+    if (query === '') {
+        songs.forEach(song => {
+            song.style.display = 'flex'; // Show all songs
+        });
+        folders.forEach(folder => {
+            const folderId = folder.getAttribute('onclick').match(/'(.*?)'/)[1];
+            const songList = document.getElementById(folderId);
+            if (songList) {
+                const visibleSongs = songList.querySelectorAll('li[data-src]');
+                folder.style.display = visibleSongs.length > 0 ? 'block' : 'none'; // Show folder if it has songs
+            }
+        });
+    }
+});
+</script>
+
 </body>
 </html>
