@@ -7,3 +7,5 @@ Features:</br>
 - Audio scrubbing
 - Independent music volume slider
 - An easy-to-use folder system for sorting songs
+- Search bar for searching artists, albums or songs
+- Metadata for when viewing the playing song on the software side
